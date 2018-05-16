@@ -1,0 +1,78 @@
+
+==================================================++
+MEMORY
+
+When you spawn a new subprocess, you create a memory copy,
+this is heavy. IT could also be good, depending on what you want.
+
+In multi-threading you use same memory, but GIL (global interpreter lock)
+means you dont use multiple cores.
+You need to use other version of python for shared memory parallelism.
+NUMBA is one option.
+
+IMPORTANT: the type of processes created needs to be set in the beginning
+    import multiprocessing as mp
+    if __name__ == '__main__':
+        mp.set_start_method('spawn')#or fork or forkserver
+
+SPAWN AND FORK:
+spawn is slower and only inherits resources needed for the run() function
+fork uses os.fork() and is a duplicate of parent process
+Fork is DEFAULT on UNIX
+
+FORKSERVER:
+In this the parent calls another server for a process. So nothing
+useless is inherited.
+
+==================================================++
+COMMUNICATION
+
+There are   QUEUES and PIPES
+
+For passing messages one can use Pipe() (for a connection between two processes) or a queue (which allows multiple producers and consumers).
+
+    QUEUES - Queues are thread and process safe.
+def f(q):
+    q.put([42, None, 'hello'])
+
+if __name__ == '__main__':
+    q = Queue()
+    p = Process(target=f, args=(q,))
+    p.start()
+    print(q.get())    # prints "[42, None, 'hello']"
+    p.join()
+
+    PIPES
+
+def f(conn):
+    conn.send([42, None, 'hello'])
+    conn.close()
+
+if __name__ == '__main__':
+    parent_conn, child_conn = Pipe()
+    p = Process(target=f, args=(child_conn,))
+    p.start()
+    print(parent_conn.recv())   # prints "[42, None, 'hello']"
+    p.join()
+
+The two connection objects returned by Pipe() represent the two ends of the pipe. Each connection object has send() and recv() methods (among others).
+Note that data in a pipe may become corrupted if two processes (or threads) try to read from or write to the same end of the pipe at the same time.
+Of course there is no risk of corruption from processes using different ends of the pipe at the same time.
+
+==================================================
+
+POOL of worker processes
+
+" with Pool(processes=4) as pool:
+        #do stuff
+"
+
+When you assign a task to the pool, the pool object manages which process to give it to, and then you get a "result"-object
+that is the handler and you can wait on it to get the result, or do other things and check at a different time.
+==================================================
+
+TERMINATING process
+
+If the output or calculation of a process is no longer needed, you can terminate it , if it is alive
+is_alive(), terminate()
+==================================================
